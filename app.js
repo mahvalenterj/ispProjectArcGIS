@@ -1,132 +1,85 @@
+// Importa os módulos necessários da ArcGIS API for JavaScript
 require([
-    "esri/Map",
-    "esri/views/MapView",
-    "esri/layers/FeatureLayer",
-    "esri/widgets/Legend",
-    "esri/widgets/Search"
-  ], function (Map, MapView, FeatureLayer, Legend, Search) {
-  
-    // Configuração do MutationObserver
-    const targetNode = document.getElementById('element-id');
-    
-    // Configuração do MutationObserver
-    const config = { childList: true, subtree: true };
-  
-    // Função de callback para o MutationObserver
-    const callback = function(mutationsList, observer) {
-      for (const mutation of mutationsList) {
-        if (mutation.type === 'childList') {
-          console.log('A alteração foi detectada!');
-        }
-      }
-    };
-  
-    // Criação do MutationObserver
-    const observer = new MutationObserver(callback);
-    
-    // Inicia a observação
-    observer.observe(targetNode, config);
-  
-    // Para parar a observação
-    // observer.disconnect();
-  
-    // Mapa base
-    const map = new Map({
-      basemap: "streets-vector"
+  "esri/Map",
+  "esri/views/MapView",
+  "esri/layers/FeatureLayer",
+  "esri/widgets/Legend"
+], function(Map, MapView, FeatureLayer, Legend) {
+
+  // Cria o mapa básico com uma camada base
+  const map = new Map({
+    basemap: "streets-navigation-vector"
+  });
+
+  // Configura a visualização do mapa no contêiner HTML
+  const view = new MapView({
+    container: "viewDiv", // ID do elemento HTML onde o mapa será exibido
+    map: map,
+    center: [-98, 39], // Centraliza nos Estados Unidos
+    zoom: 4
+  });
+
+  // Define a camada de condados (polígonos) com base no endpoint fornecido
+  const countiesLayer = new FeatureLayer({
+    url: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Census_Counties/FeatureServer/0",
+    outFields: ["*"], // Carrega todos os campos para consultas futuras
+    opacity: 0.7 // Define a transparência dos polígonos
+  });
+
+  // Define a camada de câmeras de tráfego (pontos) com base no endpoint fornecido
+  const camerasLayer = new FeatureLayer({
+    url: "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/Traffic_Cameras/FeatureServer/0"
+  });
+
+  // Consulta a contagem de câmeras por condado
+  camerasLayer.queryFeatures({
+    where: "1=1", // Consulta todos os registros
+    outStatistics: [{
+      onStatisticField: "OBJECTID",
+      outStatisticFieldName: "cameraCount",
+      statisticType: "count"
+    }],
+    groupByFieldsForStatistics: ["County_ID"] // Campo identificador dos condados
+  }).then(function(results) {
+
+    // Cria um objeto para armazenar a contagem de câmeras por condado
+    const countyCameraCounts = {};
+    results.features.forEach(function(feature) {
+      const countyID = feature.attributes.County_ID;
+      const count = feature.attributes.cameraCount;
+      countyCameraCounts[countyID] = count;
     });
-  
-    // Configuração da View
-    const view = new MapView({
-      container: "viewDiv",
-      map: map,
-      center: [-100, 40], // Coordenadas aproximadas para a visualização inicial
-      zoom: 4
-    });
-  
-    // Configuração da camada de Condados
-    const countiesLayer = new FeatureLayer({
-      url: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Census_Counties/FeatureServer/0",
-      outFields: ["OBJECTID"]
-    });
-  
-    // Configuração da camada de Câmeras
-    const camerasLayer = new FeatureLayer({
-      url: "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/Traffic_Cameras/FeatureServer/0",
-      outFields: ["FID", "OBJECTID", "location", "county", "feedID", "url", "iframe", "lat", "long"],
-      visible: true,
-      popupTemplate: {
-        title: "Câmera de Tráfego",
-        content: `
-          <b>Localização:</b> {location}<br>
-          <b>Condado:</b> {county}<br>
-          <b>Latitude:</b> {lat}<br>
-          <b>Longitude:</b> {long}<br>
-          <b>URL:</b> <a href="{url}" target="_blank">Visualizar câmera</a>
-        `
-      }
-    });
-  
-    // Renderer para camada de Condados baseada em contagem de câmeras
-    const countiesRenderer = {
-      type: "simple",
-      symbol: {
-        type: "simple-fill",
-        color: [0, 0, 139, 0.6], // Azul escuro
-        outline: {
-          width: 0.5,
-          color: [255, 255, 255, 0.3]
-        }
-      },
-      visualVariables: [{
-        type: "color",
-        field: "OBJECTID", // Utilizado como referência para cada condado
-        stops: [
-          { value: 1, color: "#0000FF", label: "Menor Contagem" },
-          { value: 100, color: "#ADD8E6", label: "Maior Contagem" } // Azul claro
-        ]
-      }]
-    };
-  
-    countiesLayer.renderer = countiesRenderer;
-    map.add(countiesLayer);
-    map.add(camerasLayer);
-  
-    // Adicionando a barra de busca para filtrar câmeras por condado
-    const search = new Search({
-      view: view,
-      allPlaceholder: "Pesquisar condado",
-      includeDefaultSources: false,
-      sources: [
-        {
-          layer: camerasLayer,
-          searchFields: ["county"],
-          displayField: "county",
-          exactMatch: false,
-          outFields: ["FID", "OBJECTID", "location", "county", "lat", "long"],
-          name: "Câmeras por Condado",
-          placeholder: "Digite o nome do condado",
-          popupEnabled: true
-        }
+
+    // Configura a renderização coroplética com base na contagem de câmeras
+    const renderer = {
+      type: "class-breaks",
+      field: "cameraCount", // Campo com a contagem de câmeras
+      classBreakInfos: [
+        { minValue: 0, maxValue: 5, symbol: { color: "#edf8fb", type: "simple-fill" } },
+        { minValue: 6, maxValue: 15, symbol: { color: "#b2e2e2", type: "simple-fill" } },
+        { minValue: 16, maxValue: 30, symbol: { color: "#66c2a4", type: "simple-fill" } },
+        { minValue: 31, maxValue: 50, symbol: { color: "#2ca25f", type: "simple-fill" } },
+        { minValue: 51, maxValue: 100, symbol: { color: "#006d2c", type: "simple-fill" } }
       ]
-    });
-  
-    // Evento para aplicar filtro na camada de câmeras ao buscar um condado
-    search.on("search-complete", function(event) {
-      const countyName = event.results[0].results[0].feature.attributes.county;
-      camerasLayer.definitionExpression = `county = '${countyName}'`;
-    });
-  
-    // Adicionando a busca e a legenda na UI
-    view.ui.add(search, "top-right");
-  
+    };
+
+    // Aplica a renderização à camada de condados e adiciona ao mapa
+    countiesLayer.renderer = renderer;
+    map.add(countiesLayer);
+
+    // Adiciona uma legenda para a escala de cores
     const legend = new Legend({
       view: view,
       layerInfos: [{
         layer: countiesLayer,
-        title: "Contagem de Câmeras por Condado"
+        title: "Contagem de Câmeras de Tráfego por Condado"
       }]
     });
-  
+
     view.ui.add(legend, "bottom-right");
   });
-  
+
+  // Adiciona a camada de câmeras de tráfego ao mapa
+  map.add(camerasLayer);
+
+});
