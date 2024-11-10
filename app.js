@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapa Coroplético - ArcGIS</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.arcgis.com; style-src 'self' https://js.arcgis.com; font-src 'self' https://fonts.gstatic.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.arcgis.com; style-src 'self' 'unsafe-inline' https://js.arcgis.com;">
     <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css">
     <script src="https://js.arcgis.com/4.30/"></script>
     <style>
