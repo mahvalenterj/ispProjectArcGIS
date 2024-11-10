@@ -1,26 +1,22 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Política de Segurança de Conteúdo para desenvolvimento (Ajuste para produção conforme necessário) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://js.arcgis.com; style-src 'self' https://js.arcgis.com">
   <title>Mapa de Câmeras de Tráfego</title>
-
-  <!-- Estilos principais -->
-  <link rel="stylesheet" href="style.css">
-  <!-- Estilos ArcGIS -->
-  <link rel="stylesheet" href="https://js.arcgis.com/4.24/esri/themes/light/main.css">
+  <!-- Adicione o CDN da ArcGIS API for JavaScript -->
+  <link rel="stylesheet" href="https://js.arcgis.com/4.26/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.26/"></script>
+  <style>
+    /* Estilos básicos para o contêiner do mapa */
+    #viewDiv {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
 </head>
 <body>
-  <!-- Div para o mapa -->
-  <div id="viewDiv" style="width: 100%; height: 100vh;"></div>
-
-  <!-- Div para a barra de busca -->
-  <div id="searchDiv"></div>
-
-  <!-- Scripts ArcGIS e App -->
-  <script src="https://js.arcgis.com/4.24/"></script>
+  <div id="viewDiv"></div>
   <script src="app.js"></script>
 </body>
 </html>
